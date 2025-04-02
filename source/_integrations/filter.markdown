@@ -174,15 +174,24 @@ LowPass(state) = A * previous_state + B * state
 
 The Outlier filter (`outlier`) is a basic Band-pass filter, as it cuts out any value outside a specific range.
 
-The included Outlier filter will discard any value beyond a band centered on the median of the previous values, replacing it with the median value of the previous values. If inside the band, the current state is returned.
+The Outlier filter looks at a sliding window of recent states from the original sensor and checks if the newest state is too far from the median value of the sliding window. The filter uses a radius to define how far a state can be from the median before it’s considered an outlier. If the state is outside that range, it is replaced with the median.
+
+Example:
+Imagine a temperature sensor reporting these recent states in °C:
+`21.3, 21.0, 21.1, 21.2, 21.4`
+Now a new state comes in: `-5.0`
+
+The median value of the sliding window is 21.2. With a radius of 5, the acceptable range is 16.2 to 26.2. Since the new state (-5.0°C) is outside that range, the filter replaces it with the median of the sliding window (21.2). 
+
+This filter will not start to function until the sliding window is filled. Untill the window is full, the filter will output the new state.
 
 ```python
-distance = abs(state - median(previous_states))
-
-if distance > radius:
-    median(previous_states)
-else:
-    state
+if len(self.states) == self.window_size:
+  median = statistics.median(self.states)
+  distance = abs(new_state - median)
+  if distance > self.radius:
+    return median
+return new_state
 ```
 
 ### Throttle
